@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Memorial Wall | ผนังอนุสรณ์แอปพลิเคชัน</title>
+    <!-- Google Fonts: Outfit for numbers/English, Sarabun/Mitr for Thai -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=Sarabun:wght@300;400;600&family=Mitr:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <!-- Lucide Icons via CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+    <div class="bg-glow"></div>
+    <div class="bg-glow bg-glow-2"></div>
+
+    <div class="container">
+        <!-- Header Section -->
+        <header>
+            <div class="header-container">
+                <div class="logo-area">
+                    <div class="logo-icon">
+                        <i data-lucide="layout-grid"></i>
+                    </div>
+                    <div>
+                        <h1>MEMORIAL WALL</h1>
+                        <p class="subtitle">ผนังอนุสรณ์รวบรวมและบันทึกแอปพลิเคชันที่สร้างสรรค์ขึ้น</p>
+                    </div>
+                </div>
+                <div class="backup-restore-group">
+                    <button id="btn-export" class="btn btn-secondary" title="ส่งออกข้อมูลสำรอง (JSON)">
+                        <i data-lucide="download"></i>
+                        <span>สำรองข้อมูล</span>
+                    </button>
+                    <button id="btn-import-trigger" class="btn btn-secondary" title="นำเข้าข้อมูลสำรอง (JSON)">
+                        <i data-lucide="upload"></i>
+                        <span>นำเข้าข้อมูล</span>
+                    </button>
+                    <input type="file" id="file-import" accept=".json" style="display: none;">
+                </div>
+            </div>
+        </header>
+
+        <!-- Stats Dashboard -->
+        <section class="stats-dashboard">
+            <div class="stat-card">
+                <div class="stat-icon icon-blue">
+                    <i data-lucide="layers"></i>
+                </div>
+                <div class="stat-info">
+                    <h3 id="stat-total-apps">0</h3>
+                    <p>แอปพลิเคชันทั้งหมด</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon icon-green">
+                    <i data-lucide="mouse-pointer-click"></i>
+                </div>
+                <div class="stat-info">
+                    <h3 id="stat-total-clicks">0</h3>
+                    <p>สถิติการเปิดใช้งานรวม</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon icon-purple">
+                    <i data-lucide="calendar"></i>
+                </div>
+                <div class="stat-info">
+                    <h3 id="stat-latest-year">-</h3>
+                    <p>ผลงานล่าสุดปี</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Control Bar (Search, Filters, Add Button) -->
+        <section class="control-panel">
+            <div class="search-box">
+                <i data-lucide="search"></i>
+                <input type="text" id="search-input" placeholder="ค้นหาตามชื่อแอป หรือรายละเอียด...">
+            </div>
+            
+            <div class="filters-group">
+                <div class="select-wrapper">
+                    <i data-lucide="filter"></i>
+                    <select id="filter-year">
+                        <option value="all">ทุกปีที่สร้าง</option>
+                    </select>
+                </div>
+
+                <div class="select-wrapper">
+                    <i data-lucide="tag"></i>
+                    <select id="filter-category">
+                        <option value="all">ทุกประเภทแอป</option>
+                        <option value="Web App">Web App</option>
+                        <option value="Desktop App">Desktop App</option>
+                        <option value="Mobile App">Mobile App</option>
+                        <option value="Extension">Extension</option>
+                        <option value="Other">ประเภทอื่น ๆ</option>
+                    </select>
+                </div>
+
+                <div class="select-wrapper">
+                    <i data-lucide="arrow-up-down"></i>
+                    <select id="sort-by">
+                        <option value="newest">ปีที่สร้างล่าสุด</option>
+                        <option value="oldest">ปีที่สร้างเก่าสุด</option>
+                        <option value="frequent">เปิดใช้งานบ่อยสุด</option>
+                        <option value="name">เรียงตามชื่อแอป (ก-ฮ)</option>
+                    </select>
+                </div>
+
+                <button id="btn-add-app" class="btn btn-primary">
+                    <i data-lucide="plus"></i>
+                    <span>เพิ่มผลงานแอป</span>
+                </button>
+            </div>
+        </section>
+
+        <!-- Memorial Wall Grid -->
+        <main class="wall-grid" id="wall-grid">
+            <!-- Cards will be dynamically inserted here -->
+            <div class="loading-state">
+                <i data-lucide="loader" class="spin"></i>
+                <p>กำลังโหลดแอปพลิเคชัน...</p>
+            </div>
+        </main>
+    </div>
+
+    <!-- Add / Edit Modal Dialog -->
+    <div class="modal-backdrop" id="app-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modal-title">เพิ่มแอปพลิเคชันของคุณ</h2>
+                <button class="btn-close" id="btn-close-modal">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+            <form id="app-form" onsubmit="return false;">
+                <input type="hidden" id="app-id">
+                
+                <div class="form-group">
+                    <label for="app-name">ชื่อแอปพลิเคชัน <span class="required">*</span></label>
+                    <input type="text" id="app-name" required placeholder="เช่น Grocer POS, Shift Calendar">
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="app-url">URL / ลิงก์เข้าใช้งานแอป <span class="required">*</span></label>
+                        <input type="url" id="app-url" required placeholder="https://example.com หรือ file:///...">
+                    </div>
+                    <div class="form-group-short">
+                        <label for="app-year">ปีที่สร้าง <span class="required">*</span></label>
+                        <input type="number" id="app-year" required placeholder="เช่น 2026 หรือ 2569" min="1990" max="2100">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="app-category">ประเภทแอปพลิเคชัน</label>
+                        <select id="app-category">
+                            <option value="Web App">Web App</option>
+                            <option value="Desktop App">Desktop App</option>
+                            <option value="Mobile App">Mobile App</option>
+                            <option value="Extension">Extension / Extension Plugin</option>
+                            <option value="Other">ประเภทอื่น ๆ</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="app-icon-color">สีธีมประจำแอป</label>
+                        <input type="color" id="app-icon-color" value="#a855f7">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="app-desc">รายละเอียดหรือบันทึกความทรงจำสั้น ๆ</label>
+                    <textarea id="app-desc" rows="3" placeholder="ระบุฟีเจอร์เด่น ความท้าทาย หรือเทคโนโลยีที่ใช้สร้างสรรค์แอปนี้ขึ้นมา..."></textarea>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" id="btn-cancel-modal">ยกเลิก</button>
+                    <button type="submit" class="btn btn-primary" id="btn-submit-form">บันทึกลงผนัง</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="toast" class="toast">
+        <i data-lucide="check-circle" class="toast-icon"></i>
+        <span id="toast-message">บันทึกสำเร็จ</span>
+    </div>
+
+    <!-- Core App Logic -->
+    <script type="module" src="app.js"></script>
+</body>
+</html>
