@@ -356,7 +356,9 @@ h1 {
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    height: 240px;
+    min-height: 245px;
+    height: auto;
+    gap: 1rem;
     backdrop-filter: blur(12px);
     transition: var(--transition-smooth);
     position: relative;
@@ -676,3 +678,59 @@ input:focus, select:focus, textarea:focus {
     0%, 100% { opacity: 0.6; }
     50% { opacity: 1; }
 }
+
+/* Local Folder Path Styles */
+.card-local-path {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 0.5rem;
+    padding: 0.35rem 0.6rem;
+    margin-top: 0.65rem;
+    width: 100%;
+}
+
+.card-local-path i {
+    width: 0.85rem;
+    height: 0.85rem;
+    flex-shrink: 0;
+    color: var(--clr-secondary);
+}
+
+.card-local-path .path-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex-grow: 1;
+    font-family: monospace;
+    user-select: all;
+}
+
+.btn-copy-path {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.15rem;
+    border-radius: 0.25rem;
+    transition: var(--transition-smooth);
+}
+
+.btn-copy-path:hover {
+    color: white;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.btn-copy-path i {
+    width: 0.75rem;
+    height: 0.75rem;
+    color: var(--text-secondary);
+}
+

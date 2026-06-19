@@ -71,6 +71,7 @@ const appYearField = document.getElementById('app-year');
 const appCategoryField = document.getElementById('app-category');
 const appIconColorField = document.getElementById('app-icon-color');
 const appDescField = document.getElementById('app-desc');
+const appLocalPathField = document.getElementById('app-local-path');
 
 // Statistics Elements
 const statTotalApps = document.getElementById('stat-total-apps');
@@ -194,12 +195,14 @@ function openModal(editAppId = null) {
             appCategoryField.value = app.category || 'Web App';
             appIconColorField.value = app.color || '#a855f7';
             appDescField.value = app.description || '';
+            appLocalPathField.value = app.localPath || '';
         }
     } else {
         modalTitle.textContent = "เพิ่มแอปพลิเคชันลงผนังอนุสรณ์";
         appIdField.value = "";
         appYearField.value = new Date().getFullYear();
         appIconColorField.value = "#a855f7";
+        appLocalPathField.value = "";
     }
     
     appModal.classList.add('active');
@@ -219,6 +222,7 @@ function handleFormSubmit() {
     const category = appCategoryField.value;
     const color = appIconColorField.value;
     const description = appDescField.value.trim();
+    const localPath = appLocalPathField.value.trim();
 
     if (!name || !url || isNaN(year)) {
         showToast("กรุณากรอกข้อมูลที่จำเป็นให้ครบถ้วน", "danger");
@@ -236,7 +240,8 @@ function handleFormSubmit() {
                 year,
                 category,
                 color,
-                description
+                description,
+                localPath
             };
             showToast("แก้ไขข้อมูลแอปพลิเคชันเรียบร้อยแล้ว");
         }
@@ -250,6 +255,7 @@ function handleFormSubmit() {
             category,
             color,
             description,
+            localPath,
             clicks: 0
         };
         apps.push(newApp);
@@ -350,6 +356,7 @@ function importData(e) {
                     category: item.category || "Web App",
                     color: item.color || "#a855f7",
                     description: item.description || "",
+                    localPath: item.localPath || "",
                     clicks: parseInt(item.clicks) || 0
                 }));
                 
@@ -432,6 +439,7 @@ function renderApps() {
         const safeDesc = escapeHtml(app.description || 'ไม่มีคำอธิบายเพิ่มเติม');
         const safeCategory = escapeHtml(app.category || 'Web App');
         const safeYear = escapeHtml(app.year.toString());
+        const safeLocalPath = app.localPath ? escapeHtml(app.localPath) : '';
         const clicksCount = app.clicks || 0;
 
         card.innerHTML = `
@@ -444,6 +452,15 @@ function renderApps() {
                     <span class="card-category">${safeCategory}</span>
                 </div>
                 <div class="card-desc">${safeDesc}</div>
+                ${safeLocalPath ? `
+                <div class="card-local-path" title="${safeLocalPath}">
+                    <i data-lucide="folder"></i>
+                    <span class="path-text">${safeLocalPath}</span>
+                    <button class="btn-copy-path" title="คัดลอกเส้นทางโฟลเดอร์">
+                        <i data-lucide="copy"></i>
+                    </button>
+                </div>
+                ` : ''}
             </div>
             
             <div class="card-bottom">
@@ -470,6 +487,15 @@ function renderApps() {
         const btnEdit = card.querySelector('.edit');
         const btnDelete = card.querySelector('.delete');
         const btnLaunch = card.querySelector('.btn-launch');
+        const btnCopyPath = card.querySelector('.btn-copy-path');
+
+        if (btnCopyPath) {
+            btnCopyPath.addEventListener('click', (e) => {
+                e.stopPropagation();
+                navigator.clipboard.writeText(app.localPath);
+                showToast("คัดลอกเส้นทางโฟลเดอร์เรียบร้อย!");
+            });
+        }
 
         btnEdit.addEventListener('click', (e) => {
             e.stopPropagation();
