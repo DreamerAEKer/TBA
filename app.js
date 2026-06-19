@@ -229,6 +229,21 @@ function handleFormSubmit() {
         return;
     }
 
+    // Check for duplicate URL or localPath (excluding the current app being edited)
+    const duplicateUrlApp = apps.find(a => a.id !== id && a.url.toLowerCase() === url.toLowerCase());
+    if (duplicateUrlApp) {
+        showToast(`URL นี้ถูกใช้งานแล้วในแอป "${duplicateUrlApp.name}"`, "danger");
+        return;
+    }
+
+    if (localPath) {
+        const duplicatePathApp = apps.find(a => a.id !== id && a.localPath && a.localPath.toLowerCase() === localPath.toLowerCase());
+        if (duplicatePathApp) {
+            showToast(`โฟลเดอร์นี้ถูกใช้งานแล้วในแอป "${duplicatePathApp.name}"`, "danger");
+            return;
+        }
+    }
+
     if (id) {
         // Edit Mode
         const index = apps.findIndex(a => a.id === id);
