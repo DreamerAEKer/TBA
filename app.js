@@ -57,7 +57,6 @@ const btnAddApp = document.getElementById('btn-add-app');
 const appModal = document.getElementById('app-modal');
 const appForm = document.getElementById('app-form');
 const modalTitle = document.getElementById('modal-title');
-const btnCloseModal = document.getElementById('btn-close-modal');
 const btnCancelModal = document.getElementById('btn-cancel-modal');
 const fileImport = document.getElementById('file-import');
 const btnImportTrigger = document.getElementById('btn-import-trigger');
@@ -110,15 +109,22 @@ function saveToStorage() {
     localStorage.setItem('memorial_wall_apps', JSON.stringify(apps));
 }
 
+function confirmAndCloseModal() {
+    if (confirm("คุณต้องการยกเลิกการกรอกข้อมูลและปิดหน้าต่างนี้ใช่หรือไม่? ข้อมูลที่คุณกรอกจะไม่ถูกบันทึก")) {
+        closeModal();
+    }
+}
+
 function setupEventListeners() {
     // Modal controls
     btnAddApp.addEventListener('click', () => openModal());
-    btnCloseModal.addEventListener('click', closeModal);
-    btnCancelModal.addEventListener('click', closeModal);
+    btnCancelModal.addEventListener('click', confirmAndCloseModal);
     
-    // Close modal when clicking backdrop
-    appModal.addEventListener('click', (e) => {
-        if (e.target === appModal) closeModal();
+    // Close modal on Escape key press with confirmation
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && appModal.classList.contains('active')) {
+            confirmAndCloseModal();
+        }
     });
 
     // Form submission
