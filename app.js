@@ -345,7 +345,36 @@ function handleAppLaunch(id, url) {
         updateStats();
         renderApps();
     }
-    window.open(url, '_blank');
+    const launchUrl = getLaunchUrl(url);
+    window.open(launchUrl, '_blank', 'noopener,noreferrer');
+
+    if (isLocalFileUrl(url)) {
+        showToast("กำลังเปิดผ่านตัวช่วย Local App Launcher");
+    }
+}
+
+const LOCAL_APP_SERVER = 'http://127.0.0.1:8765';
+const LOCAL_SCRATCH_PREFIX = 'file:///C:/Users/Admin/.gemini/antigravity/scratch/';
+
+function isLocalFileUrl(url = '') {
+    return url.toLowerCase().startsWith('file:///');
+}
+
+function getLaunchUrl(url = '') {
+    if (!isLocalFileUrl(url)) return url;
+
+    // Browsers block file:// links opened by an https page. The companion
+    // server exposes only the configured scratch directory on localhost.
+    if (url.toLowerCase().startsWith(LOCAL_SCRATCH_PREFIX.toLowerCase())) {
+        const relativePath = url.slice(LOCAL_SCRATCH_PREFIX.length)
+            .split('/')
+            .map(segment => encodeURIComponent(decodeURIComponent(segment)))
+            .join('/');
+        return `${LOCAL_APP_SERVER}/${relativePath}`;
+    }
+
+    showToast("ไฟล์นี้อยู่นอกโฟลเดอร์ scratch ที่อนุญาต", "danger");
+    return `${LOCAL_APP_SERVER}/help`;
 }
 
 // Delete Operation
