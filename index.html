@@ -74,6 +74,24 @@
             </div>
         </section>
 
+        <!-- Hosting platform categories -->
+        <section class="hosting-categories" aria-label="กรองตามแพลตฟอร์มที่เผยแพร่">
+            <div class="hosting-heading">
+                <div>
+                    <span class="hosting-eyebrow">DEPLOYMENT</span>
+                    <h2>แยกตามที่อยู่ของแอป</h2>
+                </div>
+                <p>เลือกดูแอปที่เผยแพร่บนแต่ละแพลตฟอร์ม</p>
+            </div>
+            <div class="hosting-tabs" id="hosting-tabs">
+                <button class="hosting-tab active" type="button" data-hosting="all"><i data-lucide="layout-grid"></i><span>ทั้งหมด</span><b data-count="all">0</b></button>
+                <button class="hosting-tab" type="button" data-hosting="GitHub"><i data-lucide="github"></i><span>GitHub</span><b data-count="GitHub">0</b></button>
+                <button class="hosting-tab" type="button" data-hosting="Vercel"><i data-lucide="triangle"></i><span>Vercel</span><b data-count="Vercel">0</b></button>
+                <button class="hosting-tab" type="button" data-hosting="Firebase"><i data-lucide="flame"></i><span>Firebase</span><b data-count="Firebase">0</b></button>
+                <button class="hosting-tab" type="button" data-hosting="Other"><i data-lucide="globe-2"></i><span>อื่น ๆ</span><b data-count="Other">0</b></button>
+            </div>
+        </section>
+
         <!-- Control Bar (Search, Filters, Add Button) -->
         <section class="control-panel">
             <div class="search-box">
@@ -169,6 +187,19 @@
                             <option value="Other">ประเภทอื่น ๆ</option>
                         </select>
                     </div>
+                    <div class="form-group">
+                        <label for="app-hosting">แพลตฟอร์มที่เผยแพร่</label>
+                        <select id="app-hosting">
+                            <option value="auto">ตรวจจาก URL อัตโนมัติ</option>
+                            <option value="GitHub">GitHub Pages</option>
+                            <option value="Vercel">Vercel</option>
+                            <option value="Firebase">Firebase Hosting</option>
+                            <option value="Other">อื่น ๆ</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
                     <div class="form-group">
                         <label for="app-icon-color">สีธีมประจำแอป</label>
                         <input type="color" id="app-icon-color" value="#a855f7">

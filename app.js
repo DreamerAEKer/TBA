@@ -46,12 +46,14 @@ const SAMPLE_APPS = [
 
 // App State
 let apps = [];
+let selectedHosting = 'all';
 
 // DOM Elements
 const wallGrid = document.getElementById('wall-grid');
 const searchInput = document.getElementById('search-input');
 const filterYear = document.getElementById('filter-year');
 const filterCategory = document.getElementById('filter-category');
+const hostingTabs = document.getElementById('hosting-tabs');
 const sortBy = document.getElementById('sort-by');
 const btnAddApp = document.getElementById('btn-add-app');
 const appModal = document.getElementById('app-modal');
@@ -68,6 +70,7 @@ const appNameField = document.getElementById('app-name');
 const appUrlField = document.getElementById('app-url');
 const appYearField = document.getElementById('app-year');
 const appCategoryField = document.getElementById('app-category');
+const appHostingField = document.getElementById('app-hosting');
 const appIconColorField = document.getElementById('app-icon-color');
 const appDescField = document.getElementById('app-desc');
 const appLocalPathField = document.getElementById('app-local-path');
@@ -83,7 +86,7 @@ function init() {
     const stored = localStorage.getItem('memorial_wall_apps');
     if (stored) {
         try {
-            apps = JSON.parse(stored);
+            apps = JSON.parse(stored).map(normalizeApp);
         } catch (e) {
             console.error("Error parsing stored apps", e);
             apps = [...SAMPLE_APPS];
@@ -135,6 +138,15 @@ function setupEventListeners() {
     filterYear.addEventListener('change', renderApps);
     filterCategory.addEventListener('change', renderApps);
     sortBy.addEventListener('change', renderApps);
+    hostingTabs.addEventListener('click', (event) => {
+        const button = event.target.closest('.hosting-tab');
+        if (!button) return;
+        selectedHosting = button.dataset.hosting;
+        hostingTabs.querySelectorAll('.hosting-tab').forEach(tab => {
+            tab.classList.toggle('active', tab === button);
+        });
+        renderApps();
+    });
 
     // Backup & Restore
     btnExport.addEventListener('click', exportData);
@@ -159,6 +171,35 @@ function updateStats() {
     } else {
         statLatestYear.textContent = "-";
     }
+
+    const counts = { all: apps.length, GitHub: 0, Vercel: 0, Firebase: 0, Other: 0 };
+    apps.forEach(app => counts[getHosting(app)]++);
+    Object.entries(counts).forEach(([platform, count]) => {
+        const element = document.querySelector(`[data-count="${platform}"]`);
+        if (element) element.textContent = count;
+    });
+}
+
+function detectHosting(url = '') {
+    try {
+        const hostname = new URL(url).hostname.toLowerCase();
+        if (hostname.endsWith('github.io')) return 'GitHub';
+        if (hostname.endsWith('vercel.app')) return 'Vercel';
+        if (hostname.endsWith('web.app') || hostname.endsWith('firebaseapp.com')) return 'Firebase';
+    } catch (_) {
+        // Local paths and incomplete URLs belong in Other.
+    }
+    return 'Other';
+}
+
+function getHosting(app) {
+    return ['GitHub', 'Vercel', 'Firebase', 'Other'].includes(app.hosting)
+        ? app.hosting
+        : detectHosting(app.url);
+}
+
+function normalizeApp(app) {
+    return { ...app, hosting: getHosting(app) };
 }
 
 // Populate Year Filter options dynamically
@@ -199,6 +240,7 @@ function openModal(editAppId = null) {
             appUrlField.value = app.url;
             appYearField.value = app.year;
             appCategoryField.value = app.category || 'Web App';
+            appHostingField.value = app.hosting || 'auto';
             appIconColorField.value = app.color || '#a855f7';
             appDescField.value = app.description || '';
             appLocalPathField.value = app.localPath || '';
@@ -208,6 +250,7 @@ function openModal(editAppId = null) {
         appIdField.value = "";
         appYearField.value = new Date().getFullYear();
         appIconColorField.value = "#a855f7";
+        appHostingField.value = "auto";
         appLocalPathField.value = "";
     }
     
@@ -226,6 +269,7 @@ function handleFormSubmit() {
     const url = appUrlField.value.trim();
     const year = parseInt(appYearField.value);
     const category = appCategoryField.value;
+    const hosting = appHostingField.value === 'auto' ? detectHosting(url) : appHostingField.value;
     const color = appIconColorField.value;
     const description = appDescField.value.trim();
     const localPath = appLocalPathField.value.trim();
@@ -260,6 +304,7 @@ function handleFormSubmit() {
                 url,
                 year,
                 category,
+                hosting,
                 color,
                 description,
                 localPath
@@ -274,6 +319,7 @@ function handleFormSubmit() {
             url,
             year,
             category,
+            hosting,
             color,
             description,
             localPath,
@@ -375,6 +421,7 @@ function importData(e) {
                     url: item.url || "#",
                     year: parseInt(item.year) || new Date().getFullYear(),
                     category: item.category || "Web App",
+                    hosting: ['GitHub', 'Vercel', 'Firebase', 'Other'].includes(item.hosting) ? item.hosting : detectHosting(item.url),
                     color: item.color || "#a855f7",
                     description: item.description || "",
                     localPath: item.localPath || "",
@@ -417,8 +464,9 @@ function renderApps() {
         
         // Category match
         const matchesCategory = selectedCategory === 'all' || app.category === selectedCategory;
+        const matchesHosting = selectedHosting === 'all' || getHosting(app) === selectedHosting;
 
-        return matchesQuery && matchesYear && matchesCategory;
+        return matchesQuery && matchesYear && matchesCategory && matchesHosting;
     });
 
     // 2. Sort
@@ -459,6 +507,9 @@ function renderApps() {
         const safeName = escapeHtml(app.name);
         const safeDesc = escapeHtml(app.description || 'ไม่มีคำอธิบายเพิ่มเติม');
         const safeCategory = escapeHtml(app.category || 'Web App');
+        const hosting = getHosting(app);
+        const safeHosting = escapeHtml(hosting);
+        const hostingIcon = { GitHub: 'github', Vercel: 'triangle', Firebase: 'flame', Other: 'globe-2' }[hosting];
         const safeYear = escapeHtml(app.year.toString());
         const safeLocalPath = app.localPath ? escapeHtml(app.localPath) : '';
         const clicksCount = app.clicks || 0;
@@ -470,7 +521,10 @@ function renderApps() {
                         <div class="card-title" title="${safeName}">${safeName}</div>
                         <div class="year-badge">ปี ${safeYear}</div>
                     </div>
-                    <span class="card-category">${safeCategory}</span>
+                    <div class="card-badges">
+                        <span class="hosting-badge hosting-${safeHosting.toLowerCase()}"><i data-lucide="${hostingIcon}"></i>${safeHosting}</span>
+                        <span class="card-category">${safeCategory}</span>
+                    </div>
                 </div>
                 <div class="card-desc">${safeDesc}</div>
                 ${safeLocalPath ? `
