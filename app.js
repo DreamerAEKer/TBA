@@ -8,6 +8,7 @@ const SAMPLE_APPS = [
         url: "https://example.com/grocer-pos",
         year: 2026,
         category: "Web App",
+        icon: "shopping-cart",
         color: "#06b6d4",
         description: "ระบบ Point of Sale สำหรับร้านขายของชำ รองรับออฟไลน์เต็มรูปแบบผ่าน PWA และเซฟข้อมูลใน IndexedDB มีระบบการขาย คุมคลังสินค้า และรายงานยอดรายวัน",
         clicks: 34
@@ -18,6 +19,7 @@ const SAMPLE_APPS = [
         url: "https://example.com/shift-calendar",
         year: 2025,
         category: "Mobile App",
+        icon: "calendar",
         color: "#a855f7",
         description: "แอปพลิเคชันจัดตารางงาน กะการทำงานสำหรับพนักงาน รองรับระบบแจ้งเตือนแบบพุช ออกรายงานการสลับกะ และคำนวณโอทีอิงตามเวลาจริง",
         clicks: 18
@@ -28,6 +30,7 @@ const SAMPLE_APPS = [
         url: "https://example.com/voice-calc",
         year: 2026,
         category: "Web App",
+        icon: "mic",
         color: "#10b981",
         description: "เครื่องคิดเลขสั่งการด้วยเสียงภาษาไทยและอังกฤษ พัฒนาขึ้นโดยใช้ Web Speech API ช่วยอำนวยความสะดวกให้ผู้พิการทางสายตาหรือการใช้งานขณะมือไม่ว่าง",
         clicks: 25
@@ -38,6 +41,7 @@ const SAMPLE_APPS = [
         url: "https://example.com/thp-rates",
         year: 2024,
         category: "Desktop App",
+        icon: "monitor",
         color: "#ef4444",
         description: "เครื่องมือคำนวณอัตราค่าบริการฝากส่งไปรษณีย์ในประเทศและต่างประเทศ คำนวณรวดเร็วตามน้ำหนักและประเภทพัสดุ",
         clicks: 9
@@ -71,6 +75,7 @@ const appUrlField = document.getElementById('app-url');
 const appYearField = document.getElementById('app-year');
 const appCategoryField = document.getElementById('app-category');
 const appHostingField = document.getElementById('app-hosting');
+const appIconField = document.getElementById('app-icon');
 const appIconColorField = document.getElementById('app-icon-color');
 const appDescField = document.getElementById('app-desc');
 const appLocalPathField = document.getElementById('app-local-path');
@@ -241,6 +246,7 @@ function openModal(editAppId = null) {
             appYearField.value = app.year;
             appCategoryField.value = app.category || 'Web App';
             appHostingField.value = app.hosting || 'auto';
+            appIconField.value = app.icon || 'globe';
             appIconColorField.value = app.color || '#a855f7';
             appDescField.value = app.description || '';
             appLocalPathField.value = app.localPath || '';
@@ -249,8 +255,10 @@ function openModal(editAppId = null) {
         modalTitle.textContent = "เพิ่มแอปพลิเคชันลงผนังอนุสรณ์";
         appIdField.value = "";
         appYearField.value = new Date().getFullYear();
-        appIconColorField.value = "#a855f7";
+        appCategoryField.value = "Web App";
         appHostingField.value = "auto";
+        appIconField.value = "globe";
+        appIconColorField.value = "#a855f7";
         appLocalPathField.value = "";
     }
     
@@ -270,6 +278,7 @@ function handleFormSubmit() {
     const year = parseInt(appYearField.value);
     const category = appCategoryField.value;
     const hosting = appHostingField.value === 'auto' ? detectHosting(url) : appHostingField.value;
+    const icon = appIconField.value;
     const color = appIconColorField.value;
     const description = appDescField.value.trim();
     const localPath = appLocalPathField.value.trim();
@@ -305,6 +314,7 @@ function handleFormSubmit() {
                 year,
                 category,
                 hosting,
+                icon,
                 color,
                 description,
                 localPath
@@ -320,6 +330,7 @@ function handleFormSubmit() {
             year,
             category,
             hosting,
+            icon,
             color,
             description,
             localPath,
@@ -348,25 +359,41 @@ function handleAppLaunch(id, url) {
     const launchUrl = getLaunchUrl(url);
     window.open(launchUrl, '_blank', 'noopener,noreferrer');
 
-    if (isLocalFileUrl(url)) {
-        showToast("กำลังเปิดผ่านตัวช่วย Local App Launcher");
+    if (isLocalFileUrl(url) || isLocalFileUrl(launchUrl)) {
+        // Also copy the direct file URL to clipboard as a convenient fallback
+        const directFileUrl = toFileUrl(url);
+        navigator.clipboard.writeText(directFileUrl).catch(() => {});
+        showToast("เปิดแอปในเครื่อง (คัดลอกที่อยู่ไฟล์แล้ว หรือเปิด start-local-apps.bat)");
     }
 }
 
 const LOCAL_APP_SERVER = 'http://127.0.0.1:8765';
 const LOCAL_SCRATCH_PREFIX = 'file:///C:/Users/Admin/.gemini/antigravity/scratch/';
 
+function toFileUrl(url = '') {
+    const clean = url.trim();
+    if (/^[a-zA-Z]:[\\/]/.test(clean)) {
+        return 'file:///' + clean.replace(/\\/g, '/');
+    }
+    return clean;
+}
+
 function isLocalFileUrl(url = '') {
-    return url.toLowerCase().startsWith('file:///');
+    const clean = url.trim().toLowerCase();
+    return clean.startsWith('file:///') || /^[a-zA-Z]:[\\/]/.test(clean) || clean.startsWith('http://127.0.0.1:8765');
 }
 
 function getLaunchUrl(url = '') {
-    if (!isLocalFileUrl(url)) return url;
+    const fileUrl = toFileUrl(url);
+    if (!isLocalFileUrl(fileUrl)) return url;
+
+    // If it's already a local server URL, return as-is
+    if (url.trim().startsWith(LOCAL_APP_SERVER)) return url.trim();
 
     // Browsers block file:// links opened by an https page. The companion
     // server exposes only the configured scratch directory on localhost.
-    if (url.toLowerCase().startsWith(LOCAL_SCRATCH_PREFIX.toLowerCase())) {
-        const relativePath = url.slice(LOCAL_SCRATCH_PREFIX.length)
+    if (fileUrl.toLowerCase().startsWith(LOCAL_SCRATCH_PREFIX.toLowerCase())) {
+        const relativePath = fileUrl.slice(LOCAL_SCRATCH_PREFIX.length)
             .split('/')
             .map(segment => encodeURIComponent(decodeURIComponent(segment)))
             .join('/');
@@ -542,12 +569,24 @@ function renderApps() {
         const safeYear = escapeHtml(app.year.toString());
         const safeLocalPath = app.localPath ? escapeHtml(app.localPath) : '';
         const clicksCount = app.clicks || 0;
+        
+        const defaultIcons = {
+            'Web App': 'globe',
+            'Desktop App': 'monitor',
+            'Mobile App': 'smartphone',
+            'Extension': 'puzzle',
+            'Other': 'box'
+        };
+        const safeIcon = escapeHtml(app.icon || defaultIcons[app.category] || 'globe');
 
         card.innerHTML = `
             <div>
                 <div class="card-top">
                     <div class="card-title-group">
-                        <div class="card-title" title="${safeName}">${safeName}</div>
+                        <div class="card-title-row" style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                            <i data-lucide="${safeIcon}" style="width: 1.25rem; height: 1.25rem; color: var(--theme-color); flex-shrink: 0;"></i>
+                            <div class="card-title" title="${safeName}" style="margin-bottom: 0; flex-grow: 1;">${safeName}</div>
+                        </div>
                         <div class="year-badge">ปี ${safeYear}</div>
                     </div>
                     <div class="card-badges">
