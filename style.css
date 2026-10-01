@@ -790,3 +790,12 @@ input:focus, select:focus, textarea:focus {
     .form-group-short { width: 100%; }
 }
 
+
+[hidden] { display: none !important; }
+.owner-panel { border: 1px solid #7356b9; border-radius: 20px; padding: 24px; margin-bottom: 24px; background: #19162b; }
+.owner-panel p { color: #bcc2d2; margin: 12px 0; line-height: 1.7; }
+.owner-actions { display: flex; flex-wrap: wrap; gap: 12px; }
+.owner-actions select { background: #182030; color: white; border-radius: 12px; padding: 12px; }
+.visibility { min-width: 54px; font-family: inherit; font-size: 13px; }
+.visibility:disabled { opacity: .4; cursor: not-allowed; }
+@media (max-width: 600px) { .owner-actions > * { width: 100%; } .actions-group { flex-wrap: wrap; } .owner-panel { padding: 16px; } }

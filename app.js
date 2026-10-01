@@ -1,53 +1,22 @@
 // Memorial Wall - Application Controller
 
-// Sample/Preloaded Apps to showcase on first load
-const SAMPLE_APPS = [
-    {
-        id: "sample-1",
-        name: "Grocer POS",
-        url: "https://example.com/grocer-pos",
-        year: 2026,
-        category: "Web App",
-        icon: "shopping-cart",
-        color: "#06b6d4",
-        description: "ระบบ Point of Sale สำหรับร้านขายของชำ รองรับออฟไลน์เต็มรูปแบบผ่าน PWA และเซฟข้อมูลใน IndexedDB มีระบบการขาย คุมคลังสินค้า และรายงานยอดรายวัน",
-        clicks: 34
-    },
-    {
-        id: "sample-2",
-        name: "Shift Calendar App",
-        url: "https://example.com/shift-calendar",
-        year: 2025,
-        category: "Mobile App",
-        icon: "calendar",
-        color: "#a855f7",
-        description: "แอปพลิเคชันจัดตารางงาน กะการทำงานสำหรับพนักงาน รองรับระบบแจ้งเตือนแบบพุช ออกรายงานการสลับกะ และคำนวณโอทีอิงตามเวลาจริง",
-        clicks: 18
-    },
-    {
-        id: "sample-3",
-        name: "Voice Calculator",
-        url: "https://example.com/voice-calc",
-        year: 2026,
-        category: "Web App",
-        icon: "mic",
-        color: "#10b981",
-        description: "เครื่องคิดเลขสั่งการด้วยเสียงภาษาไทยและอังกฤษ พัฒนาขึ้นโดยใช้ Web Speech API ช่วยอำนวยความสะดวกให้ผู้พิการทางสายตาหรือการใช้งานขณะมือไม่ว่าง",
-        clicks: 25
-    },
-    {
-        id: "sample-4",
-        name: "Thai Postage Rate Calculator",
-        url: "https://example.com/thp-rates",
-        year: 2024,
-        category: "Desktop App",
-        icon: "monitor",
-        color: "#ef4444",
-        description: "เครื่องมือคำนวณอัตราค่าบริการฝากส่งไปรษณีย์ในประเทศและต่างประเทศ คำนวณรวดเร็วตามน้ำหนักและประเภทพัสดุ",
-        clicks: 9
-    }
-];
-
+// Owner selections remain in this browser. Only published-apps.json is public.
+const MANAGE = new URLSearchParams(location.search).has('manage');
+const OWNER_KEY = 'memorial_wall_owner_v2';
+function isPublicUrl(value) {
+    try {
+        const url = new URL(value);
+        const host = url.hostname.toLowerCase();
+        return ['https:', 'http:'].includes(url.protocol) && !['localhost', '::1', '[::1]'].includes(host)
+            && !/^(127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(host);
+    } catch { return false; }
+}
+function publicRecord(app) {
+    return { id: app.id, name: app.name, url: app.url, year: app.year,
+        category: app.category, hosting: getHosting(app), icon: app.icon,
+        color: app.color, description: app.description, clicks: 0 };
+}
+function refresh() { populateYearFilter(); updateStats(); renderApps(); }
 // App State
 let apps = [];
 let selectedHosting = 'all';
@@ -86,37 +55,67 @@ const statTotalClicks = document.getElementById('stat-total-clicks');
 const statLatestYear = document.getElementById('stat-latest-year');
 
 // Initial setup
-function init() {
-    // Load apps from localStorage or set defaults
-    const stored = localStorage.getItem('memorial_wall_apps');
-    if (stored) {
-        try {
-            apps = JSON.parse(stored).map(normalizeApp);
-        } catch (e) {
-            console.error("Error parsing stored apps", e);
-            apps = [...SAMPLE_APPS];
-        }
-    } else {
-        apps = [...SAMPLE_APPS];
-        saveToStorage();
-    }
-
-    // Set default year input to current year
+async function init() {
+    document.body.classList.toggle('manage-mode', MANAGE);
+    document.querySelector('.subtitle').textContent = MANAGE
+        ? 'หน้าจัดการส่วนตัว · เลือกแอปแล้วเตรียมรายการเผยแพร่'
+        : 'แอปพลิเคชันที่เจ้าของเลือกเผยแพร่';
+    document.getElementById('owner-panel').hidden = !MANAGE;
+    btnAddApp.hidden = !MANAGE;
+    document.querySelector('.backup-restore-group').hidden = !MANAGE;
     appYearField.value = new Date().getFullYear();
-
-    // Attach Event Listeners
     setupEventListeners();
-
-    // Render interface elements
-    populateYearFilter();
-    updateStats();
-    renderApps();
+    if (MANAGE) {
+        const stored = localStorage.getItem(OWNER_KEY) || localStorage.getItem('memorial_wall_apps');
+        if (stored) {
+            try {
+                const parsed = JSON.parse(stored);
+                if (!Array.isArray(parsed)) throw new Error('รูปแบบข้อมูลไม่ถูกต้อง');
+                apps = parsed.map(normalizeApp);
+            } catch {
+                document.getElementById('owner-status').textContent = 'อ่านข้อมูลเดิมไม่ได้ กรุณานำเข้าไฟล์สำรอง ข้อมูลเดิมยังถูกเก็บไว้';
+                return;
+            }
+        }
+        document.getElementById('btn-publish-file').addEventListener('click', exportPublished);
+        document.getElementById('visibility-filter').addEventListener('change', renderApps);
+        document.getElementById('btn-preview-public').addEventListener('click', () => {
+            publicPreview = !publicPreview;
+            document.getElementById('btn-preview-public').textContent = publicPreview ? 'กลับไปจัดการทั้งหมด' : 'ดูตัวอย่างที่ผู้ชมจะเห็น';
+            refresh();
+        });
+    } else {
+        try {
+            const response = await fetch(new URL('./published-apps.json', location.href), { cache: 'no-store' });
+            if (!response.ok) throw new Error('load failed');
+            const parsed = await response.json();
+            if (!Array.isArray(parsed)) throw new Error('invalid data');
+            apps = parsed.filter(app => app && isPublicUrl(app.url)).map(app => normalizeApp({ ...publicRecord(app), published: true }));
+        } catch {
+            wallGrid.textContent = 'โหลดรายการเผยแพร่ไม่สำเร็จ กรุณาลองใหม่ภายหลัง';
+            return;
+        }
+    }
+    refresh();
 }
-
+let publicPreview = false;
+function visibleApps() {
+    return MANAGE && !publicPreview ? apps : apps.filter(app => app.published && isPublicUrl(app.url));
+}
 function saveToStorage() {
-    localStorage.setItem('memorial_wall_apps', JSON.stringify(apps));
+    if (MANAGE) localStorage.setItem(OWNER_KEY, JSON.stringify(apps));
 }
-
+function exportPublished() {
+    const selected = apps.filter(app => app.published && isPublicUrl(app.url)).map(publicRecord);
+    downloadJson(selected, 'published-apps.json');
+    showToast('เตรียม ' + selected.length + ' แอปแล้ว ต้องเผยแพร่ไฟล์นี้ก่อนผู้ชมจะเห็นรายการใหม่');
+}
+function downloadJson(data, filename) {
+    const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
+    const link = document.createElement('a');
+    link.href = url; link.download = filename; link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
 function confirmAndCloseModal() {
     if (confirm("คุณต้องการยกเลิกการกรอกข้อมูลและปิดหน้าต่างนี้ใช่หรือไม่? ข้อมูลที่คุณกรอกจะไม่ถูกบันทึก")) {
         closeModal();
@@ -161,13 +160,18 @@ function setupEventListeners() {
 
 // Stats Calculation
 function updateStats() {
-    statTotalApps.textContent = apps.length;
+    const displayed = visibleApps();
+    statTotalApps.textContent = displayed.length;
+    if (MANAGE) {
+        const selected = apps.filter(app => app.published && isPublicUrl(app.url)).length;
+        document.getElementById('owner-status').textContent = 'เก็บทั้งหมด ' + apps.length + ' แอป · เลือกแสดง ' + selected + ' · ซ่อน ' + (apps.length - selected) + ' (การเลือกยังเป็นฉบับร่าง)';
+    }
     
-    const totalClicks = apps.reduce((sum, app) => sum + (app.clicks || 0), 0);
+    const totalClicks = displayed.reduce((sum, app) => sum + (app.clicks || 0), 0);
     statTotalClicks.textContent = totalClicks;
 
-    if (apps.length > 0) {
-        const years = apps.map(app => parseInt(app.year)).filter(y => !isNaN(y));
+    if (displayed.length > 0) {
+        const years = displayed.map(app => parseInt(app.year)).filter(y => !isNaN(y));
         if (years.length > 0) {
             statLatestYear.textContent = Math.max(...years);
         } else {
@@ -177,8 +181,8 @@ function updateStats() {
         statLatestYear.textContent = "-";
     }
 
-    const counts = { all: apps.length, GitHub: 0, Vercel: 0, Firebase: 0, Other: 0 };
-    apps.forEach(app => counts[getHosting(app)]++);
+    const counts = { all: displayed.length, GitHub: 0, Vercel: 0, Firebase: 0, Other: 0 };
+    displayed.forEach(app => counts[getHosting(app)]++);
     Object.entries(counts).forEach(([platform, count]) => {
         const element = document.querySelector(`[data-count="${platform}"]`);
         if (element) element.textContent = count;
@@ -204,7 +208,7 @@ function getHosting(app) {
 }
 
 function normalizeApp(app) {
-    return { ...app, hosting: getHosting(app) };
+    return { ...app, hosting: getHosting(app), published: app.published === true && isPublicUrl(app.url) };
 }
 
 // Populate Year Filter options dynamically
@@ -212,7 +216,7 @@ function populateYearFilter() {
     const currentVal = filterYear.value;
     
     // Get unique years, sorted descending
-    const years = [...new Set(apps.map(app => app.year))]
+    const years = [...new Set(visibleApps().map(app => app.year))]
         .filter(Boolean)
         .sort((a, b) => b - a);
 
@@ -234,6 +238,7 @@ function populateYearFilter() {
 
 // Modal handling
 function openModal(editAppId = null) {
+    if (!MANAGE || publicPreview) return;
     appForm.reset();
     
     if (editAppId) {
@@ -272,6 +277,7 @@ function closeModal() {
 
 // Create/Update operation
 function handleFormSubmit() {
+    if (!MANAGE) return;
     const id = appIdField.value;
     const name = appNameField.value.trim();
     const url = appUrlField.value.trim();
@@ -340,6 +346,7 @@ function handleFormSubmit() {
         showToast("เพิ่มแอปพลิเคชันลงผนังอนุสรณ์สำเร็จ!");
     }
 
+    apps = apps.map(normalizeApp);
     saveToStorage();
     closeModal();
     populateYearFilter();
@@ -349,8 +356,9 @@ function handleFormSubmit() {
 
 // Track application launch clicks
 function handleAppLaunch(id, url) {
+    if ((!MANAGE || publicPreview) && !isPublicUrl(url)) return;
     const appIndex = apps.findIndex(a => a.id === id);
-    if (appIndex !== -1) {
+    if (MANAGE && !publicPreview && appIndex !== -1) {
         apps[appIndex].clicks = (apps[appIndex].clicks || 0) + 1;
         saveToStorage();
         updateStats();
@@ -406,6 +414,7 @@ function getLaunchUrl(url = '') {
 
 // Delete Operation
 function deleteApp(id, name) {
+    if (!MANAGE) return;
     if (confirm(`คุณแน่ใจหรือไม่ว่าต้องการนำแอป "${name}" ออกจากผนังอนุสรณ์?`)) {
         apps = apps.filter(a => a.id !== id);
         saveToStorage();
@@ -435,7 +444,7 @@ function showToast(message, type = "success") {
         toast.style.borderColor = 'var(--clr-danger)';
     }
     
-    lucide.createIcons();
+    window.lucide?.createIcons();
     
     toast.classList.add('show');
     
@@ -446,6 +455,7 @@ function showToast(message, type = "success") {
 
 // Export Database to JSON File
 function exportData() {
+    if (!MANAGE) return;
     const dataStr = JSON.stringify(apps, null, 2);
     const blob = new Blob([dataStr], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -461,6 +471,7 @@ function exportData() {
 
 // Import Database from JSON File
 function importData(e) {
+    if (!MANAGE) return;
     const file = e.target.files[0];
     if (!file) return;
 
@@ -470,7 +481,8 @@ function importData(e) {
             const importedApps = JSON.parse(evt.target.result);
             
             // Basic format validation
-            if (Array.isArray(importedApps)) {
+            if (Array.isArray(importedApps) && importedApps.every(item => item && typeof item.name === 'string' && typeof item.url === 'string')) {
+                if (!confirm('นำเข้า ' + importedApps.length + ' แอปแทนฉบับร่างปัจจุบัน? ควรสำรองข้อมูลปัจจุบันก่อน')) return;
                 apps = importedApps.map(item => ({
                     id: item.id || Date.now().toString() + Math.random().toString(36).substr(2, 5),
                     name: item.name || "Untitled App",
@@ -481,6 +493,8 @@ function importData(e) {
                     color: item.color || "#a855f7",
                     description: item.description || "",
                     localPath: item.localPath || "",
+                    icon: item.icon || 'globe',
+                    published: item.published === true && isPublicUrl(item.url),
                     clicks: parseInt(item.clicks) || 0
                 }));
                 
@@ -510,7 +524,9 @@ function renderApps() {
     const selectedCategory = filterCategory.value;
     const sorting = sortBy.value;
 
-    let filtered = apps.filter(app => {
+    let filtered = visibleApps().filter(app => {
+        const visibility = document.getElementById('visibility-filter').value;
+        if (MANAGE && !publicPreview && visibility !== 'all' && ((visibility === 'shown') !== app.published)) return false;
         // Search text match
         const matchesQuery = app.name.toLowerCase().includes(query) || 
                              app.description.toLowerCase().includes(query);
@@ -546,10 +562,10 @@ function renderApps() {
         wallGrid.innerHTML = `
             <div class="empty-state">
                 <i data-lucide="folder-open" style="width: 3rem; height: 3rem; color: var(--text-muted);"></i>
-                <p>ไม่พบแอปพลิเคชันที่ตรงกับเงื่อนไขการค้นหา</p>
+                <p>ยังไม่มีแอปที่เผยแพร่ หรือไม่พบแอปที่ตรงกับตัวกรอง</p>
             </div>
         `;
-        lucide.createIcons();
+        window.lucide?.createIcons();
         return;
     }
 
@@ -595,7 +611,7 @@ function renderApps() {
                     </div>
                 </div>
                 <div class="card-desc">${safeDesc}</div>
-                ${safeLocalPath ? `
+                ${MANAGE && !publicPreview && safeLocalPath ? `
                 <div class="card-local-path" title="${safeLocalPath}">
                     <i data-lucide="folder"></i>
                     <span class="path-text">${safeLocalPath}</span>
@@ -612,12 +628,14 @@ function renderApps() {
                     <span>เปิดใช้ ${clicksCount} ครั้ง</span>
                 </div>
                 <div class="actions-group">
+                    ${MANAGE && !publicPreview ? `<button class="btn-icon visibility" title="${app.published ? 'ซ่อนจากผู้ชม' : 'แสดงให้ผู้ชม'}" ${!isPublicUrl(app.url) ? 'disabled' : ''}>${!isPublicUrl(app.url) ? 'ในเครื่อง' : app.published ? 'ซ่อน' : 'แสดง'}</button>
                     <button class="btn-icon edit" title="แก้ไข">
                         <i data-lucide="edit-2"></i>
                     </button>
                     <button class="btn-icon delete" title="นำออก">
                         <i data-lucide="trash-2"></i>
                     </button>
+                    ` : ''}
                     <button class="btn-launch" title="เปิดลิงก์ผลงาน">
                         <span>เรียกใช้งาน</span>
                         <i data-lucide="external-link"></i>
@@ -640,12 +658,18 @@ function renderApps() {
             });
         }
 
-        btnEdit.addEventListener('click', (e) => {
+        const btnVisibility = card.querySelector('.visibility');
+        if (btnVisibility) btnVisibility.addEventListener('click', (e) => {
+            e.stopPropagation();
+            app.published = !app.published && isPublicUrl(app.url);
+            saveToStorage(); refresh();
+        });
+        if (btnEdit) btnEdit.addEventListener('click', (e) => {
             e.stopPropagation();
             openModal(app.id);
         });
 
-        btnDelete.addEventListener('click', (e) => {
+        if (btnDelete) btnDelete.addEventListener('click', (e) => {
             e.stopPropagation();
             deleteApp(app.id, app.name);
         });
@@ -663,7 +687,7 @@ function renderApps() {
         wallGrid.appendChild(card);
     });
 
-    lucide.createIcons();
+    window.lucide?.createIcons();
 }
 
 // Utility function to escape HTML characters

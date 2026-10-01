@@ -29,7 +29,7 @@
                         <p class="subtitle">ผนังอนุสรณ์รวบรวมและบันทึกแอปพลิเคชันที่สร้างสรรค์ขึ้น</p>
                     </div>
                 </div>
-                <div class="backup-restore-group">
+                <div class="backup-restore-group" hidden>
                     <button id="btn-export" class="btn btn-secondary" title="ส่งออกข้อมูลสำรอง (JSON)">
                         <i data-lucide="download"></i>
                         <span>สำรองข้อมูล</span>
@@ -43,7 +43,18 @@
             </div>
         </header>
 
-        <!-- Stats Dashboard -->
+        <section id="owner-panel" class="owner-panel" hidden>
+    <h2>เลือกแอปที่ผู้ชมจะเห็น</h2>
+    <p id="owner-status"></p>
+    <p>แสดง/ซ่อนเป็นฉบับร่างในเครื่องนี้ กดเตรียมไฟล์แล้วนำ published-apps.json ไปแทนที่ไฟล์ใน public และเผยแพร่เว็บ จึงจะมีผลกับผู้ชมทุกเครื่อง</p>
+    <p>แอปในเครื่องเลือกเผยแพร่ไม่ได้ · หน้าสาธารณะไม่อ่านรายการส่วนตัวหรือไฟล์สำรอง</p>
+    <div class="owner-actions">
+      <select id="visibility-filter" aria-label="กรองสถานะการแสดง"><option value="all">ทั้งหมด</option><option value="shown">เลือกแสดง</option><option value="hidden">ซ่อน</option></select>
+      <button id="btn-preview-public" class="btn btn-secondary">ดูตัวอย่างที่ผู้ชมจะเห็น</button>
+      <button id="btn-publish-file" class="btn btn-primary">เตรียมไฟล์รายการเผยแพร่</button>
+    </div>
+    </section>
+    <!-- Stats Dashboard -->
         <section class="stats-dashboard">
             <div class="stat-card">
                 <div class="stat-icon icon-blue">
@@ -129,7 +140,7 @@
                     </select>
                 </div>
 
-                <button id="btn-add-app" class="btn btn-primary">
+                <button id="btn-add-app" hidden class="btn btn-primary">
                     <i data-lucide="plus"></i>
                     <span>เพิ่มผลงานแอป</span>
                 </button>
