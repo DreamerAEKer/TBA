@@ -83,7 +83,8 @@ async function init() {
             try {
                 const parsed = JSON.parse(stored);
                 if (!Array.isArray(parsed)) throw new Error('รูปแบบข้อมูลไม่ถูกต้อง');
-                apps = parsed.map(normalizeApp);
+                apps = (parsed.length > 0 && parsed.every(app => /^sample-\d+$/.test(app.id))
+                    ? catalog.map(app => ({ ...app, published: true })) : parsed).map(normalizeApp);
             } catch {
                 document.getElementById('owner-status').textContent = 'อ่านข้อมูลเดิมไม่ได้ กรุณานำเข้าไฟล์สำรอง ข้อมูลเดิมยังถูกเก็บไว้';
                 return;
