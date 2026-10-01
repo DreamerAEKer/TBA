@@ -46,13 +46,16 @@
         <section id="owner-panel" class="owner-panel" hidden>
     <h2>เลือกแอปที่ผู้ชมจะเห็น</h2>
     <p id="owner-status"></p>
-    <p>แสดง/ซ่อนเป็นฉบับร่างในเครื่องนี้ กดเตรียมไฟล์แล้วนำ published-apps.json ไปแทนที่ไฟล์ใน public และเผยแพร่เว็บ จึงจะมีผลกับผู้ชมทุกเครื่อง</p>
+    <p id="owner-instructions">กำลังตรวจตัวช่วยจัดการ...</p>
     <p>แอปในเครื่องเลือกเผยแพร่ไม่ได้ · หน้าสาธารณะไม่อ่านรายการส่วนตัวหรือไฟล์สำรอง</p>
     <div class="owner-actions">
       <select id="visibility-filter" aria-label="กรองสถานะการแสดง"><option value="all">ทั้งหมด</option><option value="shown">เลือกแสดง</option><option value="hidden">ซ่อน</option></select>
       <button id="btn-preview-public" class="btn btn-secondary">ดูตัวอย่างที่ผู้ชมจะเห็น</button>
       <button id="btn-publish-file" class="btn btn-primary">เตรียมไฟล์รายการเผยแพร่</button>
+      <button id="btn-publish-live" class="btn btn-primary" hidden>เผยแพร่รายการที่เลือก</button>
+      <a id="owner-direct-link" class="btn btn-primary" href="http://127.0.0.1:8768/TBA/?manage" hidden>เปิดหน้าจัดการในคอม</a>
     </div>
+    <p id="publication-status" role="status" aria-live="polite"></p>
     </section>
     <!-- Stats Dashboard -->
         <section class="stats-dashboard">

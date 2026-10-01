@@ -4,6 +4,17 @@
 const MANAGE = new URLSearchParams(location.search).has('manage');
 const OWNER_KEY = 'memorial_wall_owner_v2';
 let publishedIds = new Set();
+const LOCAL_OWNER = location.hostname === '127.0.0.1' && location.port === '8768';
+let ownerToken = '';
+let saveChain = Promise.resolve();
+async function ownerApi(route, data) {
+    const response = await fetch('/api/' + route, { method: data ? 'POST' : 'GET',
+        headers: { 'Content-Type': 'application/json', 'X-TBA-Owner': ownerToken },
+        ...(data ? { body: JSON.stringify(data) } : {}) });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || 'ทำรายการไม่สำเร็จ');
+    return result;
+}
 function isPublicUrl(value) {
     try {
         const url = new URL(value);
@@ -67,6 +78,13 @@ async function init() {
     appYearField.value = new Date().getFullYear();
     setupEventListeners();
     if (MANAGE) {
+        let diskApps = null;
+        if (LOCAL_OWNER) {
+            try {
+                ownerToken = (await ownerApi('session')).token;
+                diskApps = (await ownerApi('owner')).apps;
+            } catch (err) { wallGrid.textContent = err.message; return; }
+        }
         let catalog = [];
         try {
             const response = await fetch(new URL('./published-apps.json', location.href), { cache: 'no-store' });
@@ -78,7 +96,7 @@ async function init() {
             wallGrid.textContent = 'โหลดรายการเผยแพร่ปัจจุบันไม่สำเร็จ กรุณาเปิดหน้านี้ใหม่ก่อนจัดการ';
             return;
         }
-        const stored = localStorage.getItem(OWNER_KEY) || localStorage.getItem('memorial_wall_apps');
+        const stored = diskApps ? JSON.stringify(diskApps) : localStorage.getItem(OWNER_KEY) || localStorage.getItem('memorial_wall_apps');
         if (stored) {
             try {
                 const parsed = JSON.parse(stored);
@@ -91,6 +109,12 @@ async function init() {
             }
         } else apps = catalog.map(app => normalizeApp({ ...app, published: true }));
         document.getElementById('btn-publish-file').addEventListener('click', exportPublished);
+        document.getElementById('btn-publish-live').hidden = !LOCAL_OWNER;
+        document.getElementById('owner-direct-link').hidden = LOCAL_OWNER;
+        document.getElementById('owner-instructions').textContent = LOCAL_OWNER
+            ? 'เลือกแสดง/ซ่อน แล้วกดเผยแพร่รายการที่เลือก ผู้ชมใช้ลิงก์เดิมได้ ข้อมูลครบทั้งหมดบันทึกในคอมนี้'
+            : 'ใช้หน้าจัดการในคอมเพื่อเผยแพร่ได้โดยตรง เปิดตัวช่วยจัดการก่อน แล้วกดลิงก์ด้านล่าง';
+        if (LOCAL_OWNER) document.getElementById('btn-publish-live').addEventListener('click', publishLive);
         document.getElementById('visibility-filter').addEventListener('change', renderApps);
         document.getElementById('btn-preview-public').addEventListener('click', () => {
             publicPreview = !publicPreview;
@@ -116,7 +140,34 @@ function visibleApps() {
     return MANAGE && !publicPreview ? apps : apps.filter(app => app.published && isPublicUrl(app.url));
 }
 function saveToStorage() {
-    if (MANAGE) localStorage.setItem(OWNER_KEY, JSON.stringify(apps));
+    if (MANAGE) {
+        localStorage.setItem(OWNER_KEY, JSON.stringify(apps));
+        if (LOCAL_OWNER) {
+            const snapshot = JSON.parse(JSON.stringify(apps));
+            saveChain = saveChain.catch(() => {}).then(() => ownerApi('owner', { apps: snapshot }));
+            saveChain.catch(err => document.getElementById('publication-status').textContent = 'บันทึกในคอมไม่สำเร็จ: ' + err.message);
+        }
+    }
+}
+async function publishLive() {
+    const button = document.getElementById('btn-publish-live');
+    const status = document.getElementById('publication-status');
+    const selected = apps.filter(a => a.published && isPublicUrl(a.url));
+    if (!confirm('เผยแพร่ ' + selected.length + ' แอปที่เลือกให้ผู้เปิดลิงก์ทุกคนเห็น? รายการที่ซ่อนยังอยู่ครบในคอม')) return;
+    button.disabled = true;
+    status.textContent = 'กำลังส่งรายการเผยแพร่...';
+    try {
+        await saveChain;
+        let result = await ownerApi('publish', { apps });
+        while (result.state === 'deploying') {
+            status.textContent = 'ส่ง ' + result.count + ' แอปแล้ว กำลังรอเว็บเผยแพร่ กรุณาเปิดตัวช่วยค้างไว้';
+            await new Promise(resolve => setTimeout(resolve, 5000));
+            result = await ownerApi('publication');
+        }
+        if (result.state !== 'success') throw new Error('การเผยแพร่ไม่สำเร็จ กรุณาลองใหม่');
+        status.textContent = 'เผยแพร่สำเร็จ ' + result.count + ' แอป ผู้ชมเปิดลิงก์เดิมได้ (หากเห็นชุดเก่าให้รีเฟรช)';
+    } catch (err) { status.textContent = err.message; }
+    finally { button.disabled = false; }
 }
 function exportPublished() {
     const selected = apps.filter(app => app.published && isPublicUrl(app.url)).map(publicRecord);
