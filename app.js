@@ -71,7 +71,8 @@ async function init() {
     document.body.classList.toggle('manage-mode', MANAGE);
     document.querySelector('.subtitle').textContent = MANAGE
         ? 'หน้าจัดการส่วนตัว · เลือกแอปแล้วเตรียมรายการเผยแพร่'
-        : 'แอปพลิเคชันที่เจ้าของเลือกเผยแพร่';
+        : '';
+    document.querySelector('.subtitle').hidden = !MANAGE;
     document.getElementById('owner-panel').hidden = !MANAGE;
     btnAddApp.hidden = !MANAGE;
     document.querySelector('.backup-restore-group').hidden = !MANAGE;
