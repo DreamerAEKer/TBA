@@ -798,4 +798,8 @@ input:focus, select:focus, textarea:focus {
 .owner-actions select { background: #182030; color: white; border-radius: 12px; padding: 12px; }
 .visibility { min-width: 54px; font-family: inherit; font-size: 13px; }
 .visibility:disabled { opacity: .4; cursor: not-allowed; }
+.app-card.is-hidden { opacity: .5; border-style: dashed; transition: opacity .2s; }
+.app-card.is-hidden:hover, .app-card.is-hidden:focus-within { opacity: .7; }
+.visibility.is-shown { color: #baf4cf; background: #163f2b; border: 1px solid #428d61; border-radius: 8px; }
+.visibility.is-hidden { color: #e2e5ee; background: #303647; border: 1px dashed #9198aa; border-radius: 8px; }
 @media (max-width: 600px) { .owner-actions > * { width: 100%; } .actions-group { flex-wrap: wrap; } .owner-panel { padding: 16px; } }

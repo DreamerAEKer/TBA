@@ -585,6 +585,7 @@ function renderApps() {
     filtered.forEach(app => {
         const card = document.createElement('div');
         card.className = 'app-card';
+        card.classList.toggle('is-hidden', MANAGE && !publicPreview && !app.published);
         card.style.setProperty('--theme-color', app.color || '#a855f7');
         card.style.setProperty('--clr-primary-glow', `${app.color || '#a855f7'}4D`); // 30% opacity
 
@@ -641,7 +642,7 @@ function renderApps() {
                     <span>เปิดใช้ ${clicksCount} ครั้ง</span>
                 </div>
                 <div class="actions-group">
-                    ${MANAGE && !publicPreview ? `<button class="btn-icon visibility" title="${app.published ? 'ซ่อนจากผู้ชม' : 'แสดงให้ผู้ชม'}" ${!isPublicUrl(app.url) ? 'disabled' : ''}>${!isPublicUrl(app.url) ? 'ในเครื่อง' : app.published ? 'ซ่อน' : 'แสดง'}</button>
+                    ${MANAGE && !publicPreview ? `<button class="btn-icon visibility ${app.published ? 'is-shown' : 'is-hidden'}" role="switch" aria-checked="${app.published}" aria-label="การแสดง ${safeName}: ${app.published ? 'แสดง' : 'ซ่อน'}" title="${!isPublicUrl(app.url) ? 'ซ่อน: แอปในเครื่องเผยแพร่ไม่ได้' : app.published ? 'สถานะ: แสดง — กดเพื่อเปลี่ยนเป็นซ่อน' : 'สถานะ: ซ่อน — กดเพื่อเปลี่ยนเป็นแสดง'}" ${!isPublicUrl(app.url) ? 'disabled' : ''}>${app.published ? 'แสดง' : 'ซ่อน'}</button>
                     <button class="btn-icon edit" title="แก้ไข">
                         <i data-lucide="edit-2"></i>
                     </button>
