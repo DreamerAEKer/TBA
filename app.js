@@ -115,6 +115,12 @@ async function init() {
             ? 'เลือกแสดง/ซ่อน แล้วกดเผยแพร่รายการที่เลือก ผู้ชมใช้ลิงก์เดิมได้ ข้อมูลครบทั้งหมดบันทึกในคอมนี้'
             : 'ใช้หน้าจัดการในคอมเพื่อเผยแพร่ได้โดยตรง เปิดตัวช่วยจัดการก่อน แล้วกดลิงก์ด้านล่าง';
         if (LOCAL_OWNER) document.getElementById('btn-publish-live').addEventListener('click', publishLive);
+        if (LOCAL_OWNER) {
+            document.getElementById('btn-publish-file').hidden = true;
+            ownerApi('publication').then(result => {
+                if (result.state === 'success') document.getElementById('publication-status').textContent = 'เผยแพร่ล่าสุดสำเร็จ ' + result.count + ' แอป';
+            }).catch(() => {});
+        }
         document.getElementById('visibility-filter').addEventListener('change', renderApps);
         document.getElementById('btn-preview-public').addEventListener('click', () => {
             publicPreview = !publicPreview;
