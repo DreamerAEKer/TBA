@@ -153,7 +153,6 @@ async function publishLive() {
     const button = document.getElementById('btn-publish-live');
     const status = document.getElementById('publication-status');
     const selected = apps.filter(a => a.published && isPublicUrl(a.url));
-    if (!confirm('เผยแพร่ ' + selected.length + ' แอปที่เลือกให้ผู้เปิดลิงก์ทุกคนเห็น? รายการที่ซ่อนยังอยู่ครบในคอม')) return;
     button.disabled = true;
     status.textContent = 'กำลังส่งรายการเผยแพร่...';
     try {
