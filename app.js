@@ -3,6 +3,7 @@
 // Owner selections remain in this browser. Only published-apps.json is public.
 const MANAGE = new URLSearchParams(location.search).has('manage');
 const OWNER_KEY = 'memorial_wall_owner_v2';
+let publishedIds = new Set();
 function isPublicUrl(value) {
     try {
         const url = new URL(value);
@@ -66,6 +67,17 @@ async function init() {
     appYearField.value = new Date().getFullYear();
     setupEventListeners();
     if (MANAGE) {
+        let catalog = [];
+        try {
+            const response = await fetch(new URL('./published-apps.json', location.href), { cache: 'no-store' });
+            if (!response.ok) throw new Error('load failed');
+            catalog = await response.json();
+            if (!Array.isArray(catalog)) throw new Error('invalid catalog');
+            publishedIds = new Set(catalog.map(app => app.id));
+        } catch {
+            wallGrid.textContent = 'โหลดรายการเผยแพร่ปัจจุบันไม่สำเร็จ กรุณาเปิดหน้านี้ใหม่ก่อนจัดการ';
+            return;
+        }
         const stored = localStorage.getItem(OWNER_KEY) || localStorage.getItem('memorial_wall_apps');
         if (stored) {
             try {
@@ -76,7 +88,7 @@ async function init() {
                 document.getElementById('owner-status').textContent = 'อ่านข้อมูลเดิมไม่ได้ กรุณานำเข้าไฟล์สำรอง ข้อมูลเดิมยังถูกเก็บไว้';
                 return;
             }
-        }
+        } else apps = catalog.map(app => normalizeApp({ ...app, published: true }));
         document.getElementById('btn-publish-file').addEventListener('click', exportPublished);
         document.getElementById('visibility-filter').addEventListener('change', renderApps);
         document.getElementById('btn-preview-public').addEventListener('click', () => {
@@ -208,7 +220,7 @@ function getHosting(app) {
 }
 
 function normalizeApp(app) {
-    return { ...app, hosting: getHosting(app), published: app.published === true && isPublicUrl(app.url) };
+    return { ...app, hosting: getHosting(app), published: (typeof app.published === 'boolean' ? app.published : publishedIds.has(app.id)) && isPublicUrl(app.url) };
 }
 
 // Populate Year Filter options dynamically
@@ -494,7 +506,7 @@ function importData(e) {
                     description: item.description || "",
                     localPath: item.localPath || "",
                     icon: item.icon || 'globe',
-                    published: item.published === true && isPublicUrl(item.url),
+                    published: (typeof item.published === 'boolean' ? item.published : publishedIds.has(item.id)) && isPublicUrl(item.url),
                     clicks: parseInt(item.clicks) || 0
                 }));
                 
