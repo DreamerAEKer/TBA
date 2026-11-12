@@ -3,6 +3,12 @@
 // Owner selections remain in this browser. Only published-apps.json is public.
 const MANAGE = new URLSearchParams(location.search).has('manage');
 const OWNER_KEY = 'memorial_wall_owner_v2';
+const GITHUB_REPO = 'DreamerAEKer/TBA';
+const TOKEN_STORAGE_KEY = 'tba_github_token';
+
+function utf8ToBase64(str) {
+    return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, (match, p1) => String.fromCharCode('0x' + p1)));
+}
 let publishedIds = new Set();
 const LOCAL_OWNER = location.hostname === '127.0.0.1' && location.port === '8768';
 let ownerToken = '';
@@ -48,6 +54,13 @@ const btnCancelModal = document.getElementById('btn-cancel-modal');
 const fileImport = document.getElementById('file-import');
 const btnImportTrigger = document.getElementById('btn-import-trigger');
 const btnExport = document.getElementById('btn-export');
+const btnPublishLive = document.getElementById('btn-publish-live');
+const tokenModal = document.getElementById('token-modal');
+const githubTokenInput = document.getElementById('github-token-input');
+const btnTokenSettings = document.getElementById('btn-token-settings');
+const btnCancelToken = document.getElementById('btn-cancel-token');
+const btnSaveToken = document.getElementById('btn-save-token');
+const btnClearToken = document.getElementById('btn-clear-token');
 
 // Form Fields
 const appIdField = document.getElementById('app-id');
@@ -110,12 +123,18 @@ async function init() {
             }
         } else apps = catalog.map(app => normalizeApp({ ...app, published: true }));
         document.getElementById('btn-publish-file').addEventListener('click', exportPublished);
-        document.getElementById('btn-publish-live').hidden = !LOCAL_OWNER;
+        if (btnPublishLive) {
+            btnPublishLive.hidden = false;
+            btnPublishLive.addEventListener('click', publishLive);
+        }
+        if (btnTokenSettings) {
+            btnTokenSettings.hidden = LOCAL_OWNER;
+            btnTokenSettings.addEventListener('click', () => openTokenModal(false));
+        }
         document.getElementById('owner-direct-link').hidden = LOCAL_OWNER;
         document.getElementById('owner-instructions').textContent = LOCAL_OWNER
             ? 'เลือกแสดง/ซ่อน แล้วกดเผยแพร่รายการที่เลือก ผู้ชมใช้ลิงก์เดิมได้ ข้อมูลครบทั้งหมดบันทึกในคอมนี้'
-            : 'ใช้หน้าจัดการในคอมเพื่อเผยแพร่ได้โดยตรง เปิดตัวช่วยจัดการก่อน แล้วกดลิงก์ด้านล่าง';
-        if (LOCAL_OWNER) document.getElementById('btn-publish-live').addEventListener('click', publishLive);
+            : 'เลือกแสดง/ซ่อน แล้วกดปุ่ม "เผยแพร่รายการที่เลือก" เพื่ออัปเดตหน้าเว็บจริงได้ทันที (ใช้ GitHub Token)';
         if (LOCAL_OWNER) {
             document.getElementById('btn-publish-file').hidden = true;
             ownerApi('publication').then(result => {
@@ -161,19 +180,95 @@ async function publishLive() {
     const status = document.getElementById('publication-status');
     const selected = apps.filter(a => a.published && isPublicUrl(a.url));
     button.disabled = true;
-    status.textContent = 'กำลังส่งรายการเผยแพร่...';
-    try {
-        await saveChain;
-        let result = await ownerApi('publish', { apps });
-        while (result.state === 'deploying') {
-            status.textContent = 'ส่ง ' + result.count + ' แอปแล้ว กำลังรอเว็บเผยแพร่ กรุณาเปิดตัวช่วยค้างไว้';
-            await new Promise(resolve => setTimeout(resolve, 5000));
-            result = await ownerApi('publication');
+
+    if (LOCAL_OWNER) {
+        status.textContent = 'กำลังส่งรายการเผยแพร่...';
+        try {
+            await saveChain;
+            let result = await ownerApi('publish', { apps });
+            while (result.state === 'deploying') {
+                status.textContent = 'ส่ง ' + result.count + ' แอปแล้ว กำลังรอเว็บเผยแพร่ กรุณาเปิดตัวช่วยค้างไว้';
+                await new Promise(resolve => setTimeout(resolve, 5000));
+                result = await ownerApi('publication');
+            }
+            if (result.state !== 'success') throw new Error('การเผยแพร่ไม่สำเร็จ กรุณาลองใหม่');
+            status.textContent = 'เผยแพร่สำเร็จ ' + result.count + ' แอป ผู้ชมเปิดลิงก์เดิมได้ (หากเห็นชุดเก่าให้รีเฟรช)';
+            showToast('เผยแพร่สำเร็จ ' + result.count + ' แอป!');
+        } catch (err) {
+            status.textContent = err.message;
+            showToast(err.message, 'danger');
+        } finally {
+            button.disabled = false;
         }
-        if (result.state !== 'success') throw new Error('การเผยแพร่ไม่สำเร็จ กรุณาลองใหม่');
-        status.textContent = 'เผยแพร่สำเร็จ ' + result.count + ' แอป ผู้ชมเปิดลิงก์เดิมได้ (หากเห็นชุดเก่าให้รีเฟรช)';
-    } catch (err) { status.textContent = err.message; }
-    finally { button.disabled = false; }
+        return;
+    }
+
+    // Direct Web Mode via GitHub REST API
+    let token = localStorage.getItem(TOKEN_STORAGE_KEY);
+    if (!token) {
+        button.disabled = false;
+        openTokenModal(true);
+        return;
+    }
+
+    status.textContent = 'กำลังติดต่อ GitHub API...';
+    try {
+        const publicRecords = selected.map(publicRecord);
+        const content = JSON.stringify(publicRecords, null, 2) + '\n';
+
+        const getRes = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/contents/public/published-apps.json`, {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Accept': 'application/vnd.github+json'
+            }
+        });
+
+        if (getRes.status === 401 || getRes.status === 403) {
+            throw new Error('GitHub Token ไม่ถูกต้อง หรือไม่มีสิทธิ์เข้าถึงคลัง DreamerAEKer/TBA (กดปุ่ม "ตั้งค่า Token" เพื่อตรวจสอบ)');
+        }
+        if (!getRes.ok) {
+            throw new Error(`ติดต่อ GitHub ไม่สำเร็จ (HTTP ${getRes.status})`);
+        }
+
+        const fileData = await getRes.json();
+        const currentBase64 = utf8ToBase64(content);
+        const cleanExisting = (fileData.content || '').replace(/\s/g, '');
+
+        if (cleanExisting === currentBase64) {
+            status.textContent = `รายการเผยแพร่เป็นปัจจุบันอยู่แล้ว (${publicRecords.length} แอป)`;
+            showToast('ข้อมูลเป็นปัจจุบันอยู่แล้ว ไม่มีการเปลี่ยนแปลง');
+            return;
+        }
+
+        status.textContent = 'กำลังส่งรายการเผยแพร่ไปยัง GitHub...';
+        const putRes = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/contents/public/published-apps.json`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Accept': 'application/vnd.github+json',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                message: `Publish ${publicRecords.length} selected apps from owner panel`,
+                content: currentBase64,
+                sha: fileData.sha,
+                branch: 'main'
+            })
+        });
+
+        if (!putRes.ok) {
+            const errBody = await putRes.json().catch(() => ({}));
+            throw new Error(errBody.message || `บันทึกไฟล์บน GitHub ไม่สำเร็จ (${putRes.status})`);
+        }
+
+        status.textContent = `✅ เผยแพร่สำเร็จ ${publicRecords.length} แอป! ระบบ GitHub Actions กำลังอัปเดตหน้าเว็บ (รอประมาณ 1-2 นาที ผู้ชมจะเห็นข้อมูลล่าสุด)`;
+        showToast(`เผยแพร่ออนไลน์สำเร็จ ${publicRecords.length} แอป!`);
+    } catch (err) {
+        status.textContent = 'เกิดข้อผิดพลาด: ' + err.message;
+        showToast(err.message, 'danger');
+    } finally {
+        button.disabled = false;
+    }
 }
 function exportPublished() {
     const selected = apps.filter(app => app.published && isPublicUrl(app.url)).map(publicRecord);
@@ -193,12 +288,20 @@ function confirmAndCloseModal() {
 }
 
 function setupEventListeners() {
+    // Token modal controls
+    if (btnCancelToken) btnCancelToken.addEventListener('click', closeTokenModal);
+    if (btnSaveToken) btnSaveToken.addEventListener('click', handleSaveToken);
+    if (btnClearToken) btnClearToken.addEventListener('click', handleClearToken);
+
     // Modal controls
     btnAddApp.addEventListener('click', () => openModal());
     btnCancelModal.addEventListener('click', confirmAndCloseModal);
     
     // Close modal on Escape key press with confirmation
     document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && tokenModal && tokenModal.classList.contains('active')) {
+            closeTokenModal();
+        }
         if (e.key === 'Escape' && appModal.classList.contains('active')) {
             confirmAndCloseModal();
         }
@@ -775,3 +878,43 @@ function escapeHtml(text) {
 
 // Start the app on page load
 window.addEventListener('DOMContentLoaded', init);
+
+
+let pendingPublishAfterToken = false;
+
+function openTokenModal(andPublish = false) {
+    pendingPublishAfterToken = andPublish;
+    const currentToken = localStorage.getItem(TOKEN_STORAGE_KEY) || '';
+    if (githubTokenInput) githubTokenInput.value = currentToken;
+    if (tokenModal) tokenModal.classList.add('active');
+    if (githubTokenInput) githubTokenInput.focus();
+}
+
+function closeTokenModal() {
+    if (tokenModal) tokenModal.classList.remove('active');
+    pendingPublishAfterToken = false;
+}
+
+function handleSaveToken() {
+    const val = (githubTokenInput ? githubTokenInput.value : '').trim();
+    if (!val) {
+        showToast('กรุณากรอก GitHub Token หรือกดยกเลิก', 'danger');
+        return;
+    }
+    localStorage.setItem(TOKEN_STORAGE_KEY, val);
+    showToast('บันทึก GitHub Token เรียบร้อย');
+    const doPublish = pendingPublishAfterToken;
+    closeTokenModal();
+    if (doPublish) {
+        publishLive();
+    }
+}
+
+function handleClearToken() {
+    if (confirm('คุณต้องการลบ GitHub Token ที่บันทึกไว้ในเบราว์เซอร์นี้ใช่หรือไม่?')) {
+        localStorage.removeItem(TOKEN_STORAGE_KEY);
+        if (githubTokenInput) githubTokenInput.value = '';
+        closeTokenModal();
+        showToast('ลบ GitHub Token เรียบร้อย');
+    }
+}

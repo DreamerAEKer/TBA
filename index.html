@@ -51,9 +51,16 @@
     <div class="owner-actions">
       <select id="visibility-filter" aria-label="กรองสถานะการแสดง"><option value="all">ทั้งหมด</option><option value="shown">เลือกแสดง</option><option value="hidden">ซ่อน</option></select>
       <button id="btn-preview-public" class="btn btn-secondary">ดูตัวอย่างที่ผู้ชมจะเห็น</button>
-      <button id="btn-publish-file" class="btn btn-primary">เตรียมไฟล์รายการเผยแพร่</button>
-      <button id="btn-publish-live" class="btn btn-primary" hidden>เผยแพร่รายการที่เลือก</button>
-      <a id="owner-direct-link" class="btn btn-primary" href="http://127.0.0.1:8768/TBA/?manage" hidden>เปิดหน้าจัดการในคอม</a>
+      <button id="btn-publish-live" class="btn btn-primary">
+        <i data-lucide="cloud-upload"></i>
+        <span>เผยแพร่รายการที่เลือก</span>
+      </button>
+      <button id="btn-token-settings" class="btn btn-secondary" title="ตั้งค่า GitHub Token สำหรับเผยแพร่ออนไลน์">
+        <i data-lucide="key"></i>
+        <span>ตั้งค่า Token</span>
+      </button>
+      <button id="btn-publish-file" class="btn btn-secondary" title="ดาวน์โหลดไฟล์ published-apps.json สำรอง">สำรองไฟล์ JSON</button>
+      <a id="owner-direct-link" class="btn btn-secondary" href="http://127.0.0.1:8768/TBA/?manage" hidden>เปิดหน้าจัดการในคอม</a>
     </div>
     <p id="publication-status" role="status" aria-live="polite"></p>
     </section>
@@ -246,6 +253,32 @@
                     <button type="submit" class="btn btn-primary" id="btn-submit-form">บันทึกลงผนัง</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- GitHub Token Modal -->
+    <div class="modal-backdrop" id="token-modal">
+        <div class="modal-content" style="max-width: 480px;">
+            <div class="modal-header">
+                <h2>ตั้งค่า GitHub Token</h2>
+            </div>
+            <div style="padding: 1rem 0;">
+                <p style="font-size: 0.95rem; line-height: 1.6; color: var(--text-secondary); margin-bottom: 1rem;">
+                    เพื่อกดเผยแพร่อัปเดตขึ้นหน้าเว็บจริงได้โดยตรง กรุณากรอก <b>Personal Access Token</b> ของ GitHub (ระบบจะบันทึกไว้เฉพาะในเบราว์เซอร์เครื่องนี้เท่านั้น):
+                </p>
+                <div class="form-group">
+                    <label for="github-token-input">GitHub Token (Classic หรือ Fine-grained)</label>
+                    <input type="password" id="github-token-input" placeholder="ghp_... หรือ gho_..." autocomplete="off">
+                </div>
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.5rem; line-height: 1.5;">
+                    💡 Token ต้องมีสิทธิ์เข้าถึงคลัง <b>DreamerAEKer/TBA</b> (สิทธิ์ <code>repo</code> หรือ <code>Contents: Read and write</code>)
+                </p>
+            </div>
+            <div class="modal-footer" style="display: flex; gap: 0.5rem; justify-content: flex-end; align-items: center;">
+                <button type="button" class="btn btn-secondary" id="btn-clear-token" style="margin-right: auto; color: #ef4444; border-color: rgba(239, 68, 68, 0.3);">ลบ Token</button>
+                <button type="button" class="btn btn-secondary" id="btn-cancel-token">ยกเลิก</button>
+                <button type="button" class="btn btn-primary" id="btn-save-token">บันทึก Token</button>
+            </div>
         </div>
     </div>
 
