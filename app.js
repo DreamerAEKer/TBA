@@ -89,6 +89,18 @@ async function init() {
     document.getElementById('owner-panel').hidden = !MANAGE;
     btnAddApp.hidden = !MANAGE;
     document.querySelector('.backup-restore-group').hidden = !MANAGE;
+    const btnToggleManage = document.getElementById('btn-toggle-manage');
+    if (btnToggleManage) {
+        if (MANAGE) {
+            btnToggleManage.href = location.pathname;
+            btnToggleManage.innerHTML = '<i data-lucide="eye"></i><span>ดูหน้าสาธารณะ</span>';
+            btnToggleManage.title = 'ออกจากโหมดจัดการและดูหน้าเว็บมุมมองผู้ชม';
+        } else {
+            btnToggleManage.href = '?manage';
+            btnToggleManage.innerHTML = '<i data-lucide="settings"></i><span>โหมดจัดการ</span>';
+            btnToggleManage.title = 'เข้าสู่โหมดจัดการแอปพลิเคชัน';
+        }
+    }
     appYearField.value = new Date().getFullYear();
     setupEventListeners();
     if (MANAGE) {
@@ -732,12 +744,26 @@ function renderApps() {
     wallGrid.innerHTML = '';
 
     if (filtered.length === 0) {
-        wallGrid.innerHTML = `
-            <div class="empty-state">
-                <i data-lucide="folder-open" style="width: 3rem; height: 3rem; color: var(--text-muted);"></i>
-                <p>ยังไม่มีแอปที่เผยแพร่ หรือไม่พบแอปที่ตรงกับตัวกรอง</p>
-            </div>
-        `;
+        if (!MANAGE && (query === 'admin' || query === 'manage')) {
+            wallGrid.innerHTML = `
+                <div class="empty-state">
+                    <i data-lucide="settings" style="width: 3.5rem; height: 3.5rem; color: var(--clr-primary);"></i>
+                    <p style="font-size: 1.15rem; font-weight: 600; margin-top: 0.75rem; color: #fff;">คุณกำลังค้นหาโหมดจัดการใช่หรือไม่?</p>
+                    <p style="color: var(--text-muted); margin-bottom: 1.25rem;">คลิกปุ่มด้านล่างเพื่อเข้าสู่หน้าจัดการและเพิ่มแอปได้ทันที</p>
+                    <a href="?manage" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 0.5rem; text-decoration: none;">
+                        <i data-lucide="shield-check"></i>
+                        <span>เข้าสู่โหมดจัดการ (?manage)</span>
+                    </a>
+                </div>
+            `;
+        } else {
+            wallGrid.innerHTML = `
+                <div class="empty-state">
+                    <i data-lucide="folder-open" style="width: 3rem; height: 3rem; color: var(--text-muted);"></i>
+                    <p>ยังไม่มีแอปที่เผยแพร่ หรือไม่พบแอปที่ตรงกับตัวกรอง</p>
+                </div>
+            `;
+        }
         window.lucide?.createIcons();
         return;
     }

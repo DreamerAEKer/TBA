@@ -29,16 +29,22 @@
                         <p class="subtitle">ผนังอนุสรณ์รวบรวมและบันทึกแอปพลิเคชันที่สร้างสรรค์ขึ้น</p>
                     </div>
                 </div>
-                <div class="backup-restore-group" hidden>
-                    <button id="btn-export" class="btn btn-secondary" title="ส่งออกข้อมูลสำรอง (JSON)">
-                        <i data-lucide="download"></i>
-                        <span>สำรองข้อมูล</span>
-                    </button>
-                    <button id="btn-import-trigger" class="btn btn-secondary" title="นำเข้าข้อมูลสำรอง (JSON)">
-                        <i data-lucide="upload"></i>
-                        <span>นำเข้าข้อมูล</span>
-                    </button>
-                    <input type="file" id="file-import" accept=".json" style="display: none;">
+                <div class="header-right" style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
+                    <a id="btn-toggle-manage" class="btn btn-secondary" href="?manage" style="text-decoration: none; display: inline-flex; align-items: center; gap: 0.5rem;">
+                        <i data-lucide="settings"></i>
+                        <span>โหมดจัดการ</span>
+                    </a>
+                    <div class="backup-restore-group" hidden>
+                        <button id="btn-export" class="btn btn-secondary" title="ส่งออกข้อมูลสำรอง (JSON)">
+                            <i data-lucide="download"></i>
+                            <span>สำรองข้อมูล</span>
+                        </button>
+                        <button id="btn-import-trigger" class="btn btn-secondary" title="นำเข้าข้อมูลสำรอง (JSON)">
+                            <i data-lucide="upload"></i>
+                            <span>นำเข้าข้อมูล</span>
+                        </button>
+                        <input type="file" id="file-import" accept=".json" style="display: none;">
+                    </div>
                 </div>
             </div>
         </header>
