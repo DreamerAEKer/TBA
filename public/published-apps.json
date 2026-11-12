@@ -33,6 +33,17 @@
     "clicks": 0
   },
   {
+    "id": "1781838038690",
+    "name": "ระบบช่วยแจงงานรับฝาก เงินเชื่อ",
+    "url": "https://dreameraeker.github.io/PDS/",
+    "year": 2026,
+    "category": "Web App",
+    "hosting": "GitHub",
+    "color": "#e0004f",
+    "description": "สำหรับ ลธ.",
+    "clicks": 0
+  },
+  {
     "id": "1784449181792",
     "name": "ช่วยตรวจทานยอด หักภาษี ณ ที่จ่าย 1%",
     "url": "https://wht-reconcile-10501.web.app/",
@@ -40,17 +51,6 @@
     "category": "Web App",
     "hosting": "Firebase",
     "color": "#a855f7",
-    "description": "",
-    "clicks": 0
-  },
-  {
-    "id": "1786089935107",
-    "name": "แบบฟอร์มใบเบิกแบบพิมพ์ ป.133",
-    "url": "https://dreameraeker.github.io/FR/",
-    "year": 2026,
-    "category": "Web App",
-    "hosting": "Other",
-    "color": "#e63900",
     "description": "",
     "clicks": 0
   },
@@ -96,6 +96,18 @@
     "hosting": "GitHub",
     "icon": "globe",
     "color": "#ff1414",
+    "description": "",
+    "clicks": 0
+  },
+  {
+    "id": "1794468282771",
+    "name": "คู่มือบริการไปรษณีย์",
+    "url": "https://dreameraeker.github.io/thp-inter-guide/",
+    "year": 2026,
+    "category": "Web App",
+    "hosting": "GitHub",
+    "icon": "globe",
+    "color": "#f75555",
     "description": "",
     "clicks": 0
   }
